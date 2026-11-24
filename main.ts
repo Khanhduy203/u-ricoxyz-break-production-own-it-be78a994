@@ -17,12 +17,20 @@ function main() {
     console.error(`entry is ${LINE.length} chars, must be 1-200`);
     process.exit(1);
   }
-  if (LINE.trim().length === 0 || LINE.includes("\n")) {
+  if (LINE.trim().length === 0 || LINE.includes("\n") || LINE.includes("\r")) {
     console.error("entry must be a single non-empty line");
     process.exit(1);
   }
   fs.mkdirSync(outDir, { recursive: true });
-  fs.writeFileSync(path.join(outDir, "entry.txt"), LINE + "\n", "utf8");
+  const outPath = path.join(outDir, "entry.txt");
+  fs.writeFileSync(outPath, LINE + "\n", "utf8");
+  // Round-trip check: fail loudly if the file on disk is not exactly the
+  // entry we meant to write (truncated write, wrong encoding, stray bytes).
+  const written = fs.readFileSync(outPath, "utf8");
+  if (written !== LINE + "\n") {
+    console.error("entry.txt verification failed: written content does not match the entry");
+    process.exit(1);
+  }
   console.log(`wrote entry.txt (${LINE.length} chars)`);
 }
 
